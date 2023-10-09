@@ -1,70 +1,21 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { socket, username, roomCode, Classes, classDescriptions, selectedClass } from "../common/stores";
-
-    let errorMessage = "";
-
-    /* *********************************** *
-    * WHERE ALL OF THE SWEET WEBHOOKS LIVE *
-    * ************************************ */
-    onMount(()=>{
-        socket.emit("user_leaves_title_page");
-        socket.on("client_requests_class_details", (classDetails) => {
-        });
-    });
-
-    // MESSAGES I EMIT
-    const selectClass = (desiredClass: string) => {
-        socket.emit("client_selects_a_class", desiredClass, (errMsg: string) => {
-            if(errMsg.length > 0){
-                errorMessage = errMsg;
-            }else{
-                $selectedClass = desiredClass;
-            }
-        });
-    };
-
-    /* ************************ *
-    * END OF THE SWEET WEBHOOKS *
-    * ************************* */
+    // Ahh, the gameboard.  Should always be at the top left of the screen when it's not the focus of the screen.
+    // Each tile should be clickable to produce a popup of what is known about the tile.  Traps?  Weather?  Was the enemy ship spotted here and the party hasn't traveled over it? etc.
+    import { username, Classes, classDescriptions, selectedClass } from "../common/stores";
+    
 </script>
 
 <div class="background flex-column flex-align-center">
-    <header>
-        YOUR ROOM CODE IS: {$roomCode}
-    </header>
-
-    <nav>
-        <h2>Select your class</h2>
-        <div class="button-container">
-            {#each Object.keys(Classes) as nameOfClass}
-                <div class="flex-column flex-align-center">
-                    <div class="flex-row">
-                        <input type="radio" bind:group={$selectedClass} id={nameOfClass} name="Class" style={`--nameOfClass: url(../../src/assets/${nameOfClass}-icon.svg)`} value={nameOfClass}/>
-                        <label for={nameOfClass}><img src={`../../src/assets/${nameOfClass}-icon.svg`} alt={`${nameOfClass} Icon`}/>{nameOfClass}</label>
-                    </div>
-                    {#if $selectedClass === nameOfClass}
-                        {$username ?? "&nbsp"}
-                    {/if}
-                </div>
-            {/each}
-        </div>
-    </nav>
-    {#if $selectedClass}
-    <details>
-        <summary>About the {$selectedClass}</summary>
-        {classDescriptions[$selectedClass]}
-    </details>
-    {/if}
-
-    <button>LET'S GO!</button>
+    <h1>
+        Gameboard
+    </h1>
 </div>
 
 <style>
     .background{
         padding-top: 46px;
 
-        background: url("YonkadingoTitleImage.png") no-repeat center center fixed;
+        background: rgba(141,215,247,1);
         margin: 0px;
         padding: 0px;
 

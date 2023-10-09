@@ -1,10 +1,32 @@
+<script lang="ts">
+    import { onMount, tick } from "svelte";
+    import { socket } from "../common/stores";
+    let myDocument: Document | null = null;
+    onMount(()=>{
+        tick();
+        myDocument = document;
+    })
+
+    const printConnectedUsers = () => {
+        socket.emit('print_users', (activeUsers: any[]) => {
+            console.log(activeUsers);
+        });
+    }
+</script>
+
 <h1>Settings</h1>
 <label for="testRange">Option: </label>
 <input type="range" min="1" max="100" value="50" id="testRange" class="slider">
 <pre>
-Get rid of this eventually:
-I want the sliders to have a little yonkadingo as the icon and it swims when you move it.
+    Get rid of this eventually:
+    I want the sliders to have a little yonkadingo as the icon and it swims when you move it.
 </pre>
+<button on:click={printConnectedUsers}>Print Users to Console</button>
+<pre>
+Your cookies:
+{myDocument?.cookie}
+</pre>
+
 
 <style>
     pre{

@@ -2,6 +2,7 @@
     import { onMount, tick } from 'svelte';
     import { socket, cookieData, isTransitionPlaying, transitionDuration } from "../common/stores";
     import SettingsModal from '../common/SettingsModal.svelte';
+    import ChatWindow from '../common/ChatWindow.svelte';
 
     let isSettingsDialogOpen: boolean = false;
     let settingsModalElement: HTMLDialogElement;
@@ -44,6 +45,7 @@
     <SettingsModal/>
     Your cookie data: {$cookieData}
 </dialog>
+<ChatWindow />
 
 <slot />
 

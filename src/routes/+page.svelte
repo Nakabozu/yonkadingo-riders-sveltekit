@@ -4,7 +4,6 @@
 
     // NPM Stuff
     import { onMount, tick } from "svelte";
-    import { io } from "socket.io-client";
     // State variable management
     import { Pages, currentPage } from "../common/stores";
     // Svelte Components
