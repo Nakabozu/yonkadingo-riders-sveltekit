@@ -1,10 +1,11 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { socket } from "../common/stores";
+    import { api, socket, cookieData, username, yonkadingo, gameboard, type Yonkadingo, type GameBoardTile, transitionToNewPage, Pages } from "../common/stores";
     let myDocument: Document | null = null;
     onMount(()=>{
         tick();
         myDocument = document;
+        $cookieData = document.cookie;
     })
 
     const printConnectedUsers = () => {
@@ -12,16 +13,42 @@
             console.log(activeUsers);
         });
     }
+
+    const printActiveGames = () => {
+        socket.emit('print_games', (activeGames: any[]) => {
+            console.log(activeGames);
+        });
+    }
+
+    const soloGame = () => {
+        socket.emit('solo_game', $username, (newYonkadingo: Yonkadingo, newGameboard: GameBoardTile[][])=>{
+            $yonkadingo = newYonkadingo;
+            $gameboard = newGameboard;
+            transitionToNewPage(Pages.Game);
+        });
+    }
+
+    const testAPI = async () => {
+        const response = await fetch(`${api}/oldDetails`);
+        const parsedResponse =  response.json();
+        console.log(parsedResponse);
+    }
 </script>
 
 <h1>Settings</h1>
 <label for="testRange">Option: </label>
 <input type="range" min="1" max="100" value="50" id="testRange" class="slider">
+
 <pre>
-    Get rid of this eventually:
-    I want the sliders to have a little yonkadingo as the icon and it swims when you move it.
+Get rid of this eventually:
+I want the sliders to have a little yonkadingo as the icon and it swims when you move it.
 </pre>
+
 <button on:click={printConnectedUsers}>Print Users to Console</button>
+<button on:click={printActiveGames}>Print Games to Console</button>
+<button on:click={soloGame}>Initiate Solo Game</button>
+<button on:click={testAPI}>Test the API</button>
+
 <pre>
 Your cookies:
 {myDocument?.cookie}
@@ -29,15 +56,21 @@ Your cookies:
 
 
 <style>
-    pre{
-        white-space: pre-wrap;
-    }
-
     h1{
         margin: 0px;
         padding: 0px;
         width: 100%;
         text-align: center;
+        font-size: 1.3rem;
+    }
+
+    pre{
+        white-space: pre-wrap;
+        font-size: 1.25rem;
+    }
+
+    button{
+        font-size: 1.25rem;
     }
 
     .slider{

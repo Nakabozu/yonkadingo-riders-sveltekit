@@ -1,51 +1,71 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { setCookie, socket, roomCode, Pages, username, isTransitionPlaying, transitionToNewPage } from "../common/stores";
+    import { 
+        showTempErrorMessage,
+        errorMessage,
+        setCookie,
+        socket,
+        roomCode,
+        username,
+        userClass,
+        // Helper Functions
+        transitionToNewPage,
+        // Enums
+        Classes,
+        Pages,
+    } from "../common/stores";
 
     let wantsToJoinGame = false;
     let desiredRoomNumber = -1;
-    let errorMessage = "";
 
     let pageHeight = 0;
     onMount(()=>{
         tick();
         pageHeight = document.body.offsetHeight;
         socket.on("connect_error", (err) => {
-            errorMessage = "Oh no!  We couldn't connect to the server!  Try coming back later."
+            $errorMessage = "Oh no!  We couldn't connect to the server!  Try coming back later."
             console.error(err);
         });
         socket.emit("user_joins_title_page");
     });
 
-    const showTempErrorMessage = (msg: string, time: number = 5000) => {
-        errorMessage = msg;
-        setTimeout(()=>{
-            errorMessage = "";
-        }, time)
+    const moveToClassPage = (userNameToSet: string, roomCodeToSet: number, userClassToSet: Classes) => {
+        $username = userNameToSet;
+        $roomCode = roomCodeToSet;
+        $userClass = userClassToSet;
+        
+        setCookie("username", userNameToSet);
+        setCookie("roomCode", String(roomCodeToSet));
+        setCookie("userClass", String(userClassToSet));
+
+        console.log(`${$username} connected to Room${roomCodeToSet} and became a ${Classes[userClassToSet]}`);
+        transitionToNewPage(Pages.Class);
     }
 
     /* *********************************** *
     * WHERE ALL OF THE SWEET WEBHOOKS LIVE *
     * ************************************ */
     // MESSAGES I EMIT
-    const onStart = () => {
+    const create_room = () => {
         tick();
         pageHeight = document.body.offsetHeight;
-        socket.emit('client_creates_room', $username, (newRoomCode: number) => {
-            console.log(`${$username} attempted to create Room${newRoomCode}`);
+        socket.emit('client_creates_room', $username, (newRoomCode: number, newClass: number) => {
             $roomCode = newRoomCode;
+            $userClass = newClass;
+            
             if(newRoomCode > 0){
-                setCookie("username", $username);
-                setCookie("roomCode", String(newRoomCode));
-                
+                moveToClassPage($username, newRoomCode, newClass);
             }else{
                 showTempErrorMessage("Weird, we couldn't start a new game for you.  Maybe try again in a couple of seconds?");
             }
         });
     }
 
-    const connect_to_room = (roomNumber: number) => {
-        socket.emit("client_connects_to_room", $username, roomNumber);
+    const connect_to_room = (requestedRoomCode: number) => {
+        socket.emit("client_connects_to_room", $username, requestedRoomCode, (newClass: Classes)=>{
+            console.log(`${$username} entered Room${requestedRoomCode} as a ${Classes[newClass]}`)
+            if(newClass > 0) moveToClassPage($username, requestedRoomCode, newClass);
+        });
     };
 
     socket.on("server_says_no_room", ()=>{
@@ -58,6 +78,10 @@
         showTempErrorMessage("Hold up now.  One room per browser tab!  How'd you even manage this?");
     });
 
+    socket.on("server_says_someone_has_that_name", () => {
+        console.log("Duplicate name!");
+        showTempErrorMessage("One of us has to change... Someone has your username already.");
+    });
 
     /* ************************ *
     * END OF THE SWEET WEBHOOKS *
@@ -71,37 +95,38 @@
     <h2>Become a Yonkadingo Captain!</h2>
     <nav class="title-buttons">
         <input type="text" class="name-input" placeholder="Name" bind:value={$username}/>
-        <button class="start-button" on:click={onStart}>START A GAME</button>
+        <button class="start-button" on:click={create_room}>START A GAME</button>
         <div class="join-game-section">
         <button class="start-button" on:click={()=>{if(!wantsToJoinGame){wantsToJoinGame = true}else{connect_to_room(desiredRoomNumber)}}}>{wantsToJoinGame ? "JOIN!" : "JOIN A GAME"}</button>
         {#if wantsToJoinGame}
             <input class="room-code-input" type="number" min={1} bind:value={desiredRoomNumber}/>
         {/if}
         </div>
-        {#if errorMessage}
-            <strong>{errorMessage}</strong>
+        {#if $errorMessage}
+            <strong>{$errorMessage}</strong>
         {/if}
     </nav>
 </div>
 
 <style>
     h1{
-        margin: 0px;
+        margin-top: 50px;
+        margin-bottom: 0px;
         
         text-align: center;
         color: white;
-        font-size: 6em;
-        -webkit-text-stroke-width: 2px;
+        font-size: 3.5rem;
+        -webkit-text-stroke-width: 1px;
         -webkit-text-stroke-color: black;
-
-        line-height: 1em;
     }
 
     h2{
         margin: 0px;
 
+        text-align: center;
         color: white;
-        font-size: 2em;
+        font-size: 3rem;
+        
         -webkit-text-stroke-width: 1px;
         -webkit-text-stroke-color: black;
     }
@@ -117,21 +142,24 @@
     }
 
     button{
-        font-size: 2em;
+        font-size: 2rem;
         padding: 0.25rem 1rem;
+        font-family: inherit;
     }
 
     .title-buttons{
+        z-index: 1;
+        top: calc(50%);
+        position: absolute;
         display: flex;
         flex-direction: column;
-        height: 100%;
         justify-content: center;
         align-items: center;
         row-gap: 1rem;
     }
 
     input{
-        font-size: 2em;
+        font-size: 2rem;
         border-radius: 10px;
         padding-left: 0.5rem;
     }

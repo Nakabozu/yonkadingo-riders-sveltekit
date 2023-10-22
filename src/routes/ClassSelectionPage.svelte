@@ -1,28 +1,105 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-    import { socket, username, roomCode, Classes, classDescriptions, selectedClass } from "../common/stores";
+    import { onMount, tick } from "svelte";
+    import { socket, username, roomCode, Classes, classDescriptions, userClass, errorMessage, showTempErrorMessage } from "../common/stores";
 
-    let errorMessage = "";
+    let classNav: HTMLDivElement;
+    let classNavHeight: string = "0px";
 
+    // THIS MUST BE KEPT IN THE SAME ORDER AS THE CLASSES TURN ORDER
+    type classDetailsType = {
+        "steward": string,
+        "bosun": string,
+        "topman": string,
+        "helmsman": string,
+        "gunner": string,
+    }
+    let classDetails: classDetailsType = {
+        "steward": "",
+        "bosun": "",
+        "topman": "",
+        "helmsman": "",
+        "gunner": "",
+    };
+
+    
     /* *********************************** *
     * WHERE ALL OF THE SWEET WEBHOOKS LIVE *
     * ************************************ */
     onMount(()=>{
+        tick();
         socket.emit("user_leaves_title_page");
-        socket.on("client_requests_class_details", (classDetails) => {
-        });
+        setClassNavHeight();
+
+        window.addEventListener('resize', setClassNavHeight);
+
+        socket.emit("client_requests_class_details", (newClassDetails: any) => {
+            console.log("Here are the class details you ordered:", newClassDetails);
+            classDetails = newClassDetails;
+        })
+
+		return () => {
+			window.removeEventListener('resize', setClassNavHeight);
+		}
+
+    });
+
+    const setClassNavHeight = () => {
+        classNav = document.getElementById("options-content") as HTMLDivElement;
+        classNavHeight = classNav.scrollHeight+"px";
+    }
+
+    const getClassButtonType = (userToCheck: string): string => {
+        if(userToCheck === $username){
+            return "class-green"
+        }else if(userToCheck !== ""){
+            return "class-red"
+        }else{
+            return ""
+        }
+    }
+
+    const getUserOfClass = (nameOfClass: string | number) => {
+        if(typeof nameOfClass === "number"){
+            // @ts-ignore
+            return classDetails[String(Classes[nameOfClass]).toLocaleLowerCase()]
+        }
+        // @ts-ignore
+        return classDetails[String(nameOfClass).toLocaleLowerCase()];
+    }
+
+   /* ***************** *
+    * MY SWEET WEBHOOKS *
+    * ***************** */
+    socket.on("server_gives_class_updates", (newClassArray) => {
+        console.log("newClassArray", newClassArray);
+        classDetails = newClassArray;
+    });
+
+    socket.on("server_says_game_starting", (gameToStart) => {
+        console.log("Your game has been served", gameToStart);
     });
 
     // MESSAGES I EMIT
-    const selectClass = (desiredClass: string) => {
-        socket.emit("client_selects_a_class", desiredClass, (errMsg: string) => {
+    const selectClass = (desiredClass: Classes) => {
+        console.log(`Yee want be a ${Classes[desiredClass]}?`);
+        const currentUserOfClass = getClassButtonType(getUserOfClass(Classes[desiredClass]));
+        if(currentUserOfClass === "class-green" || currentUserOfClass === ""){
+            socket.emit("client_selects_a_class", desiredClass, (errMsg: string) => {
+            console.error(errMsg);
             if(errMsg.length > 0){
-                errorMessage = errMsg;
+                showTempErrorMessage(errMsg);
             }else{
-                $selectedClass = desiredClass;
+                $userClass = desiredClass;
             }
         });
+        }else if(currentUserOfClass === "class-red"){
+            console.log(`Yee cain't replace ${getUserOfClass(desiredClass)} as ${Classes[desiredClass]}!!!`)
+        }
     };
+
+    const startGame = () => {
+        socket.emit("client_starts_game");
+    }
 
     /* ************************ *
     * END OF THE SWEET WEBHOOKS *
@@ -34,30 +111,34 @@
         YOUR ROOM CODE IS: {$roomCode}
     </header>
 
-    <nav>
-        <h2>Select your class</h2>
-        <div class="button-container">
-            {#each Object.keys(Classes) as nameOfClass}
-                <div class="flex-column flex-align-center">
-                    <div class="flex-row">
-                        <input type="radio" bind:group={$selectedClass} id={nameOfClass} name="Class" style={`--nameOfClass: url(../../src/assets/${nameOfClass}-icon.svg)`} value={nameOfClass}/>
-                        <label for={nameOfClass}><img src={`../../src/assets/${nameOfClass}-icon.svg`} alt={`${nameOfClass} Icon`}/>{nameOfClass}</label>
+    <div id="options-content" class="options-content" style="--options-content-height: {classNavHeight}">
+        <nav>
+            <h2>Select your class</h2>
+            <div class="button-container">
+                {#each Object.keys(classDetails) as nameOfClass, index}
+                    <div class="class-button-and-user flex-column flex-align-center">
+                        <button 
+                        class={`flex-row class-button ${getClassButtonType(getUserOfClass(nameOfClass))}`}
+                        on:click={()=>{selectClass(index+1);}}>
+                            <img src={`../../src/assets/${nameOfClass.toLocaleLowerCase()}-icon.svg`} alt={`${nameOfClass} Icon`}/>{nameOfClass}
+                        </button>
+                        <span>{
+                            getUserOfClass(nameOfClass) ? getUserOfClass(nameOfClass) : "\u00A0"
+                        }</span>
                     </div>
-                    {#if $selectedClass === nameOfClass}
-                        {$username ?? "&nbsp"}
-                    {/if}
-                </div>
-            {/each}
-        </div>
-    </nav>
-    {#if $selectedClass}
-    <details>
-        <summary>About the {$selectedClass}</summary>
-        {classDescriptions[$selectedClass]}
-    </details>
-    {/if}
+                {/each}
+            </div>
+        </nav>
+        {#if $userClass}
+        <details>
+            <summary>About the {Classes[$userClass]}</summary>
+            {classDescriptions[String(Classes[$userClass]).toLocaleLowerCase()]}
+        </details>
+        {/if}
 
-    <button>LET'S GO!</button>
+        <button on:click={startGame}>SET SAIL!</button>
+        <strong>{$errorMessage}</strong>
+    </div>
 </div>
 
 <style>
@@ -73,30 +154,40 @@
     
     header{
         margin-top: 3rem;
+        color: aliceblue;
 
-        color: gold;
-        font-size: 3.5em;
+        text-align: center;
+        font-size: 3.5rem;
         font-weight: 700;
-        font-family: 'Gothic Medium', 'Arial Narrow', Arial, sans-serif;
-        -webkit-text-stroke-width: 2px;
+        -webkit-text-stroke-width: 1px;
         -webkit-text-stroke-color: black;
+    }
 
+    .options-content{
+        z-index: 1;
+
+        position: absolute;
+        top: calc(50vh - calc(var( --options-content-height ) / 2));
+
+        display: flex;
+        flex-flow: column nowrap;
+
+        align-items: center;
+        justify-content: center;
     }
 
     nav{
         display: flex;
         flex-direction: column;
 
-        margin-top: 3em;
-        gap: 1em;
+        gap: 1rem;
     }
 
     nav h2{
         align-self: center;
-
+        font-size: 3rem;
         font-weight: 600;
-
-        font-family: 'Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+        font-family: "Freebooter", 'Gothic Medium', 'Arial Narrow', Arial, sans-serif;
     }
 
     .button-container{
@@ -106,17 +197,17 @@
         align-content: center;
         justify-content: center;
 
-        gap: 1em;
+        gap: 1rem;
     }
 
-    label{
+    .class-button{
         display: flex;
         justify-content: center;
         align-items: center;
 
         width: 100%;
 
-        font-size: 2em;
+        font-size: 2.5rem;
         padding: 0.25rem 1rem;
         text-transform: capitalize;
 
@@ -128,14 +219,18 @@
         cursor: pointer;
     }
 
-    input[type="radio"]:checked+label{
-        background-color: aquamarine;
-    }
+    @media screen and (max-width: 400px) {
+        .button-container {
+            display: grid;
+        }
 
-    label img{
-        width: 1em;
-        height: 1em;
-        margin-right: 0.5em;
+        .class-button-and-user{
+            width: 100%;
+        }
+
+        .class-button{
+            width: 100%;
+        }
     }
 
     input[type="radio"] {
@@ -145,16 +240,35 @@
         margin: 0;
     }
 
+    .class-green{
+        background-color: aquamarine;
+    }
+
+    .class-red{
+        background-color: lightcoral;
+    }
+
+    .class-button img{
+        width: 2rem;
+        height: 2rem;
+        margin-right: 0.5rem;
+    }
+
+    span{
+        font-size: 1.2rem;
+        text-shadow: 2px 2px 3px #fff, -2px -2px 3px #fff, 2px -2px 3px #fff, -2px 2px 3px #fff;
+    }
+
     button{
-        margin-top: 1rem;
+        margin-top: 0.25rem;
         padding: 5px 10px;
         font-size: large;
         box-shadow: 10px 5px 5px black;
     }
 
     details{
-        margin-top: 3em;
-        padding: 1em 3em;
+        margin-top: 1rem;
+        padding: 0.5rem 1.5rem;
         background-color: aliceblue;
 
         width: 50%;
@@ -162,10 +276,16 @@
 
         border: 2px solid black;
         border-radius: 10px;
+
+        font-size: clamp(1.25em, 1.0rem, 1pt);
     }
 
     details summary{
         text-transform: capitalize;
+    }
+
+    strong{
+        color: red;
     }
 
     .flex-row{
