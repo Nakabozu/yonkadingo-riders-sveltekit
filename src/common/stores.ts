@@ -2,7 +2,33 @@
 import { writable, readable } from 'svelte/store';
 import { io } from "socket.io-client";
 
-// Constants
+// The Websocket
+export const socket = io(
+    "ws://localhost:5100"
+    //"wss://134.209.222.229:5100/"
+);
+
+// #region Constants and Enums
+
+// ANSI Colors
+export const bT = '\x1b[30m'
+export const rT = '\x1b[31m'
+export const gT = '\x1b[32m'
+export const yT = '\x1b[33m'
+export const buT = '\x1b[34m'
+export const mT = '\x1b[35m'
+export const cT = '\x1b[36m'
+export const wT = '\x1b[37m'
+export const bB = '\x1b[40m'
+export const rB = '\x1b[41m'
+export const gB = '\x1b[42m'
+export const yB = '\x1b[43m'
+export const buB = '\x1b[44m'
+export const mB = '\x1b[45m'
+export const cB = '\x1b[46m'
+export const wB = '\x1b[47m'
+export const ansiR = '\x1b[00m'
+
 export enum Pages {
     Title = 1,
     Class,
@@ -22,25 +48,69 @@ export enum Classes {
     Gunner,
 }
 
-export enum Weathers {
-    Nothing = 1,
-    Tailwind,
-    Headwind,
-    TuckedAway,
-    WideOpen,
-    ClearSkies,
-    DenseFog,
-    CalmWaters,
-    RoughSeas,
-    AmpleTime,
-    RushJob,
-    FeedingFrenzy,
-    Famine,
-    FullMoon,
-    NewMoon,
-    NiceSprites,
-    ScaryMonsters
+/**
+ * The GameActions are sent to the `client_performs_action` message's callback.
+ * They are interpreted by the backend to perform a single player's move in the game.
+ */
+export enum GameActions {
+    // Global Actions
+    GlobalPass = 1,
+    // Helmsman Actions
+    HelmsmanMove,
+    // Bosun Actions
+    BosunDetect,
+    BosunReduceFood,
+    BosunReducePellets,
+    // Topman Actions
+    TopmanReveal,
+    // Gunner Actions
+    GunnerMine,
+    GunnerFire,
+    GunnerDodge,
+    // Steward Actions
+    StewardBuff
 }
+
+export enum Weathers {
+    Nothing = 1,    // 
+    Tailwind,       // 💨
+    Headwind,       // 🐌
+    TuckedAway,     // 😶‍🌫️
+    WideOpen,       // 🎯
+    ClearSkies,     // ☀️
+    DenseFog,       // ⛅
+    CalmWaters,     // ⛵
+    RoughSeas,      // 🌊
+    AmpleTime,      // ⏳
+    RushJob,        // ⏱
+    FeedingFrenzy,  // 🤤
+    Famine,         // 🍽
+    FullMoon,       // 🌕
+    NewMoon,        // 🌑
+    NiceSprites,    // 🧚
+    ScaryMonsters   // 👿
+}
+
+export const weatherIcons: string[] = [
+    "ICONS START AT 1", // If this one shows up, you made a mistake
+    "\u00A0",     // Nothing
+    "💨",        // Tailwind
+    "🐌",        // Headwind
+    "😶‍🌫️",        // Tucked Away
+    "🎯",        // Wide Open
+    "☀️",        // Clear Skies
+    "⛅",         // Dense Fog
+    "🌅",        // Calm Waters
+    "🌊",        // RoughSeas
+    "⏳",        // AmpleTime
+    "⏱",        // RushJob
+    "🤤",        // FeedingFrenzy
+    "🍽",         // Famine
+    "🌕",        // FullMoon
+    "🌑",        // NewMoon
+    "🧚",        // NiceSprites
+    "👿"         // ScaryMonsters
+]
 
 export enum ResourceTypes {
     Food = 0,
@@ -48,12 +118,13 @@ export enum ResourceTypes {
 }
 
 export type GameBoardTile = {
-    isRevealedVal: boolean;
+    isRevealed: boolean;
     hasAI: boolean;
-    hasMineVal: boolean;
-    weatherVal: Weathers | null;
-    resourceTypeVal: ResourceTypes;
-    resourceCountVal: number;
+    hasYonka: boolean;
+    hasMine: boolean;
+    weather: Weathers | null;
+    resourceType: ResourceTypes;
+    resourceCount: number;
 }
 
 export type Coordinate = {
@@ -70,13 +141,18 @@ export type Yonkadingo = {
 }
 
 export const classDescriptions: any = {
-    helmsman: "The HELMSMAN steers the Yonkadingo through the harsh waters, evading traps and navigating towards rewards.",
-    bosun: "The BOSUN has a simple but important job: reducing energy expended or activating shields to avoid damage.",
-    topman: "The TOPMAN uses the magic powered spyglass to reveal what lies on future tiles.",
-    gunner: "The GUNNER attacks the enemy ship by firing a deadly beam and laying mines.",
-    steward: "The STEWARD assists a player each turn, making them more likely to succeed in their efforts."
+    steward: "The STEWARD keeps the crew happy by helping!  You choose who to buff!",
+    bosun: "The BOSUN manages rigging and cargo!  You choose resource expenditure!",
+    topman: "The TOPMAN tells of what lies ahead!  You choose what to reveal!",
+    helmsman: "The HELMSMAN steers the ship to victory!  You choose where to go!",
+    gunner: "The GUNNER is in charge of weaponry!  You choose how and when to attack!",
 }
+// #endregion
 
+
+
+
+// #region Helper Functions
 export const getCookie = (name: string) => {
     function escape(s:string) { return s.replace(/([.*+?\^$(){}|\[\]\/\\])/g, '\\$1'); }
     var match = document.cookie.match(RegExp('(?:^|;\\s*)' + escape(name) + '=([^;]*)'));
@@ -87,16 +163,12 @@ export const setCookie = (key: string, value: string): void => {
     const rightNow = new Date().getTime();
     document.cookie = `${key}=${value}; expires=${new Date(rightNow * 2 * 60 * 60 * 1000)}; path=/; SameSite=Lax;`;
 }
-
-// The Websocket
-export const socket = io(
-    "ws://localhost:5100"
-    //"wss://134.209.222.229:5100/"
-);
-
+// #endregion
 export const api = "https://localhost:5100";
 
-// State Variables
+
+
+// #region General Variables
 export const cookieData = writable({});
 export const isTransitionPlaying = writable(false);
 export const currentPage = writable(Pages.Title);
@@ -105,17 +177,26 @@ export const username = writable("Naka");
 export const userClass = writable<null | Classes>(null);
 export const roomCode = writable(1);
 export const errorMessage = writable("");
-// Game State Variables
-export const gameboard = writable<GameBoardTile[][]>([]);
-export const yonkadingo = writable<Yonkadingo>({
-    location: {row: 0, column: 3},
-    hp: 50,
-    food: 10,
-    pellets: 10,
-    isDodging: false
-});
+// #endregion
 
-// Helper Functions
+
+
+
+
+
+
+
+// #region Settings Variables
+export const isSettingsDialogOpen = writable<boolean>(false);
+export const isAnimationEnabled = writable(false);
+export const isShowingChat = writable(false);
+export const isChatDisplayed = writable(true);
+// #endregion
+
+
+
+
+// #region Helper Functions
 export const transitionDuration = 3;
 export const transitionToNewPage = (pageToTransitionTo: Pages) => {
     isTransitionPlaying.set(true);
@@ -129,3 +210,23 @@ export const showTempErrorMessage = (msg: string, time: number = 5000) => {
         errorMessage.set("");
     }, time)
 }
+// #endregion
+
+
+// #region Game State Variables
+export const gameboard = writable<GameBoardTile[][]>([]);
+export const yonkadingo = writable<Yonkadingo>({
+    location: {row: 0, column: 3},
+    hp: 50,
+    food: 10,
+    pellets: 10,
+    isDodging: false
+});
+export const currentTurn = writable<Classes>(Classes.Steward);
+// #endregion
+
+
+// #region Game Class Vars
+export const totalTopmanTilesAllowed = writable<number>(3);
+export const topmanSelectedTiles = writable<Coordinate[]>([]);
+export const topmanWarning = writable<string>("");

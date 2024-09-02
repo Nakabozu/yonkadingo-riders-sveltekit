@@ -9,7 +9,7 @@
     // Svelte Components
     import TitlePage from "./TitlePage.svelte";
     import ClassSelectionPage from "./ClassSelectionPage.svelte";
-    import GameBoard from "./GameBoard.svelte";
+    import GamePage from "./GamePage.svelte";
 </script>
 
 {#if $currentPage === Pages.Title}
@@ -17,7 +17,7 @@
 {:else if $currentPage === Pages.Class}
     <ClassSelectionPage/>
 {:else if $currentPage === Pages.Game}
-    <GameBoard/>
+    <GamePage/>
 {/if}
 
 <style>

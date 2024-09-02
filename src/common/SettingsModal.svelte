@@ -1,6 +1,20 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { api, socket, cookieData, username, yonkadingo, gameboard, type Yonkadingo, type GameBoardTile, transitionToNewPage, Pages } from "../common/stores";
+    import { 
+        api,
+        socket,
+        cookieData,
+        username,
+        yonkadingo,
+        gameboard,
+        transitionToNewPage,
+        Pages,
+        isSettingsDialogOpen,
+        isAnimationEnabled,
+        isChatDisplayed,
+        type Yonkadingo, 
+        type GameBoardTile,
+    } from "../common/stores";
     let myDocument: Document | null = null;
     onMount(()=>{
         tick();
@@ -26,6 +40,7 @@
             $gameboard = newGameboard;
             transitionToNewPage(Pages.Game);
         });
+        $isSettingsDialogOpen = false;
     }
 
     const testAPI = async () => {
@@ -38,6 +53,8 @@
 <h1>Settings</h1>
 <label for="testRange">Option: </label>
 <input type="range" min="1" max="100" value="50" id="testRange" class="slider">
+<button on:click={()=>{$isAnimationEnabled = !$isAnimationEnabled}}>{$isAnimationEnabled ? "Disable" : "Enabled"} Animations</button>
+<button on:click={()=>{$isChatDisplayed = !$isChatDisplayed}}>{$isChatDisplayed ? "Hide" : "Show"} Chat</button>
 
 <pre>
 Get rid of this eventually:

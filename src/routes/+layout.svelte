@@ -1,12 +1,11 @@
 <script lang="ts">
     import { onMount, tick } from 'svelte';
-    import { userId, socket, getCookie, setCookie, isTransitionPlaying, transitionDuration } from "../common/stores";
+    import { userId, socket, getCookie, setCookie, isTransitionPlaying, transitionDuration, isSettingsDialogOpen } from "../common/stores";
     import SettingsModal from '../common/SettingsModal.svelte';
     import ChatWindow from '../common/ChatWindow.svelte';
     import TreasureHunt from '../assets/TreasurehuntPersonalUseRegular-3zKgp.otf';
     import TreasureMap from "../assets/TreasureMapDeadhand-yLA3.ttf";
 
-    let isSettingsDialogOpen: boolean = false;
     let settingsModalElement: HTMLDialogElement;
     let settingsModalWidth: number | undefined;
     let settingsModalHeight: number | undefined;
@@ -34,7 +33,7 @@
     });
 
     const openSettingsModal = async () => {
-        isSettingsDialogOpen = !isSettingsDialogOpen;
+        $isSettingsDialogOpen = !$isSettingsDialogOpen;
         // Must wait for dialog to be rendered before updating width and height or it will simply be 0 every time.
         await tick();
         settingsModalWidth = settingsModalElement.offsetWidth;
@@ -53,7 +52,7 @@
 <dialog
     id="settings-modal"
     bind:this={settingsModalElement}
-    open={isSettingsDialogOpen}
+    open={$isSettingsDialogOpen}
     style={`top: calc(50% - ${Math.floor((settingsModalHeight ?? 0)/2)}px); left: calc(50% - ${Math.floor((settingsModalWidth ?? 0)/2)}px);`}>
     <SettingsModal/>
 </dialog>
@@ -92,6 +91,11 @@
         src: url("../assets/FreebooterItalic-5Xlv.ttf") format('truetype');
         font-style: italic;
     }
+
+    @font-face{
+        font-family: "DSEG7";
+        src: url('../assets/DSEG7Classic-Regular.ttf') format('truetype');
+    }
     /** For Root EM (REM) values, HTML is the ROOT element of any web document, which affects "rem" css values.
      ** FUN FACT WITH NAK! **: EM, otherwise known as em-quads, em-squares, mutton-quads, or mutton-squares 
             was the size of the capital M character in printing presses, because capital M (pronounced "em") 
@@ -126,6 +130,7 @@
         position: absolute;
         top: 1rem;
         right: 1rem;
+        z-index: 10;
     }
 
     dialog{

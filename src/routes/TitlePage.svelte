@@ -14,6 +14,7 @@
         Classes,
         Pages,
     } from "../common/stores";
+    import tripleCartoonWave from "../assets/triple-cartoon-wave.gif";
 
     let wantsToJoinGame = false;
     let desiredRoomNumber = -1;
@@ -97,15 +98,19 @@
         <input type="text" class="name-input" placeholder="Name" bind:value={$username}/>
         <button class="start-button" on:click={create_room}>START A GAME</button>
         <div class="join-game-section">
-        <button class="start-button" on:click={()=>{if(!wantsToJoinGame){wantsToJoinGame = true}else{connect_to_room(desiredRoomNumber)}}}>{wantsToJoinGame ? "JOIN!" : "JOIN A GAME"}</button>
-        {#if wantsToJoinGame}
-            <input class="room-code-input" type="number" min={1} bind:value={desiredRoomNumber}/>
-        {/if}
+            <button class="join-button" on:click={()=>{if(!wantsToJoinGame){wantsToJoinGame = true}else{connect_to_room(desiredRoomNumber)}}}>{wantsToJoinGame ? "JOIN!" : "JOIN A GAME"}</button>
+            {#if wantsToJoinGame}
+                <input class="room-code-input" type="number" min={1} bind:value={desiredRoomNumber}/>
+            {/if}
         </div>
         {#if $errorMessage}
             <strong>{$errorMessage}</strong>
         {/if}
     </nav>
+    <span class="preload-assets">
+        <img src={tripleCartoonWave} alt="Triple Wave Gif Preloader"/>
+        0123456789
+    </span>
 </div>
 
 <style>
@@ -151,11 +156,26 @@
         z-index: 1;
         top: calc(50%);
         position: absolute;
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: 1fr 
+        1fr 
+        1fr;
         justify-content: center;
         align-items: center;
         row-gap: 1rem;
+    }
+
+    .join-game-section{
+        display: flex;
+    }
+
+    .join-button{
+        width: 100%;
+    }
+
+    .join-game-section input{
+        margin-left: 10px;
     }
 
     input{
@@ -180,5 +200,16 @@
 
     .flex-align-center{
         align-items: center;
+    }
+
+    .preload-assets{
+        display: flex;
+        flex-direction: column;
+        opacity: .05;
+        position: fixed;
+        top: -500px;
+        left: -500px;
+
+        font-family: "DSEG7";
     }
 </style>

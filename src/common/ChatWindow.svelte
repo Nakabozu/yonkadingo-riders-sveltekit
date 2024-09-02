@@ -1,14 +1,16 @@
 <script lang="ts">
     import { onMount, tick } from "svelte";
-    import { socket, username } from "../common/stores";
+    import { isChatDisplayed, isShowingChat, socket, username } from "../common/stores";
     let messages: any[] = [];
     let userInput = "";
 
     let chatTextBoxObj: HTMLTextAreaElement;
     onMount(()=>{
         tick();
-        chatTextBoxObj = document.getElementById("chat-text-box") as HTMLTextAreaElement;
-        resizeTextbox();
+        if($isShowingChat){
+            chatTextBoxObj = document.getElementById("chat-text-box") as HTMLTextAreaElement;
+            resizeTextbox();
+        }
     })
 
     const resizeTextbox = () => {
@@ -52,36 +54,48 @@
         messages = messages;
     });
 </script>
-
-<section>
-    <form>
-        <textarea 
-            id="chat-text-box"
-            bind:value={userInput}
-            on:keyup={onKeyUp}
-         />
-        <button on:click={sendMessage}>Send</button>
-    </form>
-    {#each messages as msg}
-        <div><strong>{msg.user}</strong>: {msg.msg}</div>
-    {/each}
-</section>
-
+{#if $isChatDisplayed}
+    {#if $isShowingChat}
+        <section>
+            <form>
+                <textarea 
+                    id="chat-text-box"
+                    bind:value={userInput}
+                    on:keyup={onKeyUp}
+                />
+                <button on:click={sendMessage}>Send</button>
+            </form>
+            <article>
+                {#each messages as msg}
+                    <div><strong>{msg.user}</strong>: {msg.msg}</div>
+                {/each}
+            </article>
+            <button class="close-button" on:click={()=>{$isShowingChat = false}}>X</button>
+        </section>
+    {:else}
+        <section>
+            <button class="show-chat-button" on:click={()=>{$isShowingChat = true}}>↑ Open Chat ↑</button>
+        </section>
+    {/if}
+{/if}
 
 <style>
     section{
         display: flex;
         flex-flow: column-reverse nowrap;
-        position: absolute;
-        bottom: calc(15px + 5vh + 2vw);
-        left: 5vw;
+        position: fixed;
+        bottom: 0px;
 
         max-height: 30vh;
+        width: 100%;
         min-width: 200px;
-        width: calc(20vw + 100px);
-        font-size: 1.5rem;
 
         overflow: hidden;
+    }
+
+    article{
+        overflow-x: hidden;
+        overflow-y: scroll;
     }
 
     form{
@@ -106,5 +120,19 @@
     button{
         font-size: inherit;
         padding: 0.1em 0.2em;
+    }
+
+    .show-chat-button{
+        width: 100%;
+        font-size: medium;
+        border-radius: 0px;
+        border: none;
+    }
+
+    .close-button{
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        color: red;
     }
 </style>
