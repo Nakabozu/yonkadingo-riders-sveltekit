@@ -11,7 +11,8 @@
         Classes,
         topmanSelectedTiles,
         totalTopmanTilesAllowed,
-        topmanWarning
+        topmanWarning,
+        helmsmanMovesPerformed
     } from "../stores";
 
     // Image Assets
@@ -37,6 +38,9 @@
     export let indexOfTileInRevealArray: number = -1;
     export let rowIndex: number = -1;
     export let colIndex: number = -1;
+
+    // Memos
+    $: helmsmanPlannedMove = $helmsmanMovesPerformed.some((move) => move.column === colIndex && move.row === rowIndex);
 
     let tileDialogElement: HTMLDialogElement | null;
     $:indexOfTileInRevealArray= $topmanSelectedTiles.findIndex((tile) => {
@@ -106,6 +110,7 @@
     on:contextmenu={onContextMenuTile}
 >
     {#if isRevealed}
+        <!-- #region Resources -->
         {#if resourceType === ResourceTypes.Food}
             {#if resourceCount > 0}
                 <div class="food-group">
@@ -169,10 +174,11 @@
         {:else}
             <div class="food-group">{"\u00A0"}</div>
         {/if}
-
+        <!-- #endregion -->
+        <!-- #region Weather -->
         <!-- Will show the weather in the event that a ship has taken the normal weather spot-->
         <div class="weather">
-            {#if hasYonka || hasAI}
+            {#if hasYonka || hasAI || helmsmanPlannedMove}
                 {getWeatherIcon()}
             {:else}
                 {"\u00A0"}
@@ -189,16 +195,17 @@
                 </span>
             {/if}
         </div>
-
+        <!-- #endregion -->
+        <!-- #region Ships/Weather -->
         <!-- If this tile has the Yonkadingo or the AI, this space is reserved for their ship icon.  Otherwise it shows the weather.  -->
         <div class="grid-bottom">
-            {#if hasYonka}
+            {#if hasYonka || helmsmanPlannedMove}
                 <img
                     src={miniship}
                     alt="Yonkadingo Location"
                     height="20px"
                     width="20px"
-                    class="ship"
+                    class="ship{helmsmanPlannedMove ? " blinking" : ""}"
                 />
             {:else if hasAI}
                 <img
@@ -212,12 +219,28 @@
                 {getWeatherIcon()}
             {/if}
         </div>
+        <!-- #endregion -->
     {:else}
-        <div>?</div>
+        <!-- #region Not Revealed -->
+        <div>
+            {#if helmsmanPlannedMove}
+                <img
+                    src={miniship}
+                    alt="Yonkadingo Location"
+                    height="20px"
+                    width="20px"
+                    class="ship blinking"
+                />
+            {:else}
+                ?
+            {/if}
+        </div>
+        <!-- #endregion -->
     {/if}
 </button>
 
 <style>
+/* #region CSS */
     .revealed-tile, .unrevealed-tile {
         background: var(--revealed-color);
         border: 1px solid var(--mine-color);
@@ -348,6 +371,29 @@
             brightness(96%) contrast(103%);
     }
 
+    .blinking{
+        animation-name: blinking;
+        animation-duration: 1.5s;
+        animation-iteration-count: infinite;
+    }
+
+    @keyframes blinking{
+        0% {
+            opacity: 1;
+        }
+        49% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0;
+        }
+        99% {
+            opacity: 0;
+        }
+        100% {
+            opacity: 1;
+        }
+    }
     
     @keyframes glow {
         from {

@@ -1,7 +1,7 @@
 <script lang="ts">
     // Ahh, the gameboard.  Should always be at the top left of the screen when it's not the focus of the screen.
     // Each tile should be clickable to produce a popup of what is known about the tile.  Traps?  Weather?  Was the enemy ship spotted here and the party hasn't traveled over it? etc.
-    import { socket, gameboard, topmanSelectedTiles, type GameBoardTile } from "../stores";
+    import { socket, gameboard, helmsmanMovesPerformed, type GameBoardTile } from "../stores";
     import Tile from "./Tile.svelte";
 
     const logGameboard = () => {
@@ -13,7 +13,6 @@
     let rowCount = $gameboard?.length;// + 1;
     let columnCount = $gameboard?.[0]?.length;// + 1;
 
-
     socket.on("server_updates_grid", (newGameboard: GameBoardTile[][]) => {
         $gameboard = newGameboard;
     });
@@ -23,7 +22,7 @@
     <h1>
         Gameboard
     </h1>
-    {JSON.stringify($topmanSelectedTiles)}
+    {JSON.stringify($helmsmanMovesPerformed)}
     <button on:click={logGameboard}>LOG GAMEBOARD</button>
     <div class="the-griddy">
         {#each {length: rowCount} as _, i}

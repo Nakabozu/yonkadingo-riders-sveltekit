@@ -62,6 +62,8 @@
         gap: 10px;
 
         margin: 10px 0px;
+
+        border-bottom: 2px solid black;
     }
 
     ul .underline{

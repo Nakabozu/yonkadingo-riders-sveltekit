@@ -210,6 +210,10 @@ export const showTempErrorMessage = (msg: string, time: number = 5000) => {
         errorMessage.set("");
     }, time)
 }
+
+export const isCoordEqual = (coordA: Coordinate, coordB: Coordinate) => {
+    return coordA.row === coordB.row && coordA.column === coordB.column;
+}
 // #endregion
 
 
@@ -230,3 +234,9 @@ export const currentTurn = writable<Classes>(Classes.Steward);
 export const totalTopmanTilesAllowed = writable<number>(3);
 export const topmanSelectedTiles = writable<Coordinate[]>([]);
 export const topmanWarning = writable<string>("");
+
+export const totalHelmsmanMovesAllowed = writable<number>(3);
+export const helmsmanMovesPerformed = writable<Coordinate[]>([]);
+export const helmsmanWarning = writable<string>("");
+
+export const gunnerAvailableMineLocations = writable<Coordinate[]>([]);
