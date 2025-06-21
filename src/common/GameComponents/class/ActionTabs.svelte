@@ -29,28 +29,36 @@
 
 </script>
 
-<ul>
-    {#each Object.keys(Classes).filter(x => isNaN(parseInt(x))) as nameOfClass, index}
-        <li>
-            <a class={currentTab === index+1 ? "underline" : ""} on:click={()=>{switchTab(index+1)}}>{nameOfClass}</a>
-        </li>
-    {/each}
-</ul>
-{#if currentTab === Classes.Steward}
-    <StewardActions />
-{:else if currentTab === Classes.Bosun}
-    <BosunActions />
-{:else if currentTab === Classes.Topman}
-    <TopmanActions />
-{:else if currentTab === Classes.Helmsman}
-    <HelmsmanActions />
-{:else if currentTab === Classes.Gunner}
-    <GunnerActions />
-{:else}
-    <h1>You must be an admin, huh?</h1>
-{/if}
+<span>
+    <ul>
+        {#each Object.keys(Classes).filter(x => isNaN(parseInt(x))) as nameOfClass, index}
+            <li>
+                <a class={currentTab === index+1 ? "underline" : ""} on:click={()=>{switchTab(index+1)}}>{nameOfClass}</a>
+            </li>
+        {/each}
+    </ul>
+    {#if currentTab === Classes.Steward}
+        <StewardActions />
+    {:else if currentTab === Classes.Bosun}
+        <BosunActions />
+    {:else if currentTab === Classes.Topman}
+        <TopmanActions />
+    {:else if currentTab === Classes.Helmsman}
+        <HelmsmanActions />
+    {:else if currentTab === Classes.Gunner}
+        <GunnerActions />
+    {:else}
+        <h1>You must be an admin, huh?</h1>
+    {/if}
+</span>
 
 <style>
+    span{
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
     ul{
         list-style-type: none;
 

@@ -9,6 +9,7 @@
         userClass,
         errorMessage,
         showTempErrorMessage,
+        yonkadingo,
     } from "../common/stores";
 
     let classNav: HTMLDivElement;
@@ -93,8 +94,9 @@
         });
     });
 
-    socket.on("server_says_game_starting", (gameToStart) => {
+    socket.on("server_says_game_starting", (gameToStart, yonka) => {
         console.log("Your game has been served", gameToStart);
+        $yonkadingo = yonka;
     });
 
     // MESSAGES I EMIT
