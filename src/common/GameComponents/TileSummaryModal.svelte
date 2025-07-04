@@ -25,6 +25,7 @@
 
     // Properties
     export let isRevealed: boolean = true;
+    export let isVisited: boolean = true;
     export let hasYonka: boolean = false;
     export let hasAI: boolean = false;
     export let hasMine: boolean = false;
@@ -34,6 +35,9 @@
     export let rowIndex: number = -1;
     export let colIndex: number = -1;
 
+    // Memos
+    $: isVisible = isRevealed || isVisited;
+
     // Some quirky javascript to get the modal to open in a way that browsers actually like
     const closeModal = () => {
         tileDialogElement?.close();
@@ -41,7 +45,7 @@
 
     // Helper JavaScript
     export const getWeatherIcon = (): string => {
-        if (isRevealed && weather && weather !== Weathers.Nothing) {
+        if (isVisible && weather && weather !== Weathers.Nothing) {
             return weatherIcons[weather];
         }
         return "\u00A0";
@@ -55,7 +59,7 @@
     bind:this={tileDialogElement}
     on:click={closeModal}
 >
-    {#if isRevealed}
+    {#if isVisible}
         <h1>Revealed Tile Summary</h1>
 
         {#if hasYonka}

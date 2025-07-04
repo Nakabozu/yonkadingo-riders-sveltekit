@@ -1,5 +1,5 @@
 <script lang="ts">
-    // Each tile should be clickable to produce a popup of what is known about the tile.  
+    // Each tile should be clickable to produce a popup of what is known about the tile.
     // Traps?  Weather?  Was the enemy ship spotted here and the party hasn't traveled over it? etc.
     import { onMount, tick } from "svelte";
     import {
@@ -12,7 +12,11 @@
         topmanSelectedTiles,
         totalTopmanTilesAllowed,
         topmanWarning,
-        helmsmanMovesPerformed
+        helmsmanMovesPerformed,
+        gunnerWarning,
+        gunnerSelectedTiles,
+        gunnerLaserDirection,
+        yonkadingo,
     } from "../stores";
 
     // Image Assets
@@ -29,6 +33,7 @@
 
     // Properties
     export let isRevealed: boolean = true;
+    export let isVisited: boolean = true;
     export let hasYonka: boolean = false;
     export let hasAI: boolean = false;
     export let hasMine: boolean = false;
@@ -40,66 +45,118 @@
     export let colIndex: number = -1;
 
     // Memos
-    $: helmsmanPlannedMove = $helmsmanMovesPerformed.some((move) => move.column === colIndex && move.row === rowIndex);
+    $: isVisible = isRevealed || isVisited;
+
+    $: helmsmanPlannedMove = $helmsmanMovesPerformed.some(
+        (move) => move.column === colIndex && move.row === rowIndex,
+    );
 
     let tileDialogElement: HTMLDialogElement | null;
-    $:indexOfTileInRevealArray= $topmanSelectedTiles.findIndex((tile) => {
-            return(tile?.row === rowIndex && tile?.column === colIndex)
-        })
-                        
+    $: indexOfTileInRevealArray = $topmanSelectedTiles.findIndex((tile) => {
+        return tile?.row === rowIndex && tile?.column === colIndex;
+    });
+    $: indexOfTileInMineArray = $gunnerSelectedTiles.findIndex((tile) => {
+        return tile?.row === rowIndex && tile?.column === colIndex;
+    });
+
+    $: isBeingLasered =
+        $gunnerLaserDirection === "left"
+            ? colIndex < $yonkadingo.location.column &&
+              rowIndex === $yonkadingo.location.row
+            : $gunnerLaserDirection === "right"
+              ? colIndex > $yonkadingo.location.column &&
+                rowIndex === $yonkadingo.location.row
+              : $gunnerLaserDirection === "up"
+                ? rowIndex < $yonkadingo.location.row &&
+                  colIndex === $yonkadingo.location.column
+                : $gunnerLaserDirection === "down"
+                  ? rowIndex > $yonkadingo.location.row &&
+                    colIndex === $yonkadingo.location.column
+                  : false;
+
     const getWeatherIcon = (): string => {
-        if (isRevealed && weather && weather !== Weathers.Nothing) {
+        if (isVisible && weather && weather !== Weathers.Nothing) {
             return weatherIcons[weather];
         }
         return "\u00A0";
     };
 
     const onClickTile = () => {
-        if($currentTurn === Classes.Topman){
+        if ($currentTurn === Classes.Topman) {
             $topmanWarning = "";
-            if(indexOfTileInRevealArray >= 0){
+            if (indexOfTileInRevealArray >= 0) {
                 // This tile is already selected.  Remove it from the array.
-                let temp = [...$topmanSelectedTiles]
+                let temp = [...$topmanSelectedTiles];
                 temp.splice(indexOfTileInRevealArray, 1);
                 $topmanSelectedTiles = [...temp];
-            }
-            else if($totalTopmanTilesAllowed > $topmanSelectedTiles?.length)
-            {
+            } else if (
+                $totalTopmanTilesAllowed > $topmanSelectedTiles?.length
+            ) {
                 // Topman can still select some stuff.  Let's select some stuff!
-                $topmanSelectedTiles = [...$topmanSelectedTiles, {row: rowIndex, column: colIndex}];
-            }else{
+                $topmanSelectedTiles = [
+                    ...$topmanSelectedTiles,
+                    { row: rowIndex, column: colIndex },
+                ];
+            } else {
                 // Dingus...
-                $topmanWarning = "You can't reveal any more tiles!"
-                setTimeout(()=>{$topmanWarning = "";}, 3000);
+                $topmanWarning = "You can't reveal any more tiles!";
+                setTimeout(() => {
+                    $topmanWarning = "";
+                }, 3000);
+            }
+        } else if ($currentTurn === Classes.Gunner) {
+            $gunnerWarning = "";
+            if (indexOfTileInMineArray >= 0) {
+                // This tile is already selected.  Remove it from the array.
+                let temp = [...$gunnerSelectedTiles];
+                temp.splice(indexOfTileInMineArray, 1);
+                $gunnerSelectedTiles = [...temp];
+            } else if (
+                $totalTopmanTilesAllowed > $gunnerSelectedTiles?.length
+            ) {
+                // Topman can still select some stuff.  Let's select some stuff!
+                $gunnerSelectedTiles = [
+                    ...$gunnerSelectedTiles,
+                    { row: rowIndex, column: colIndex },
+                ];
+            } else {
+                // Dingus...
+                $gunnerWarning = "You can't reveal any more tiles!";
+                setTimeout(() => {
+                    $gunnerWarning = "";
+                }, 3000);
             }
         }
-    }
+    };
 
     const onContextMenuTile = (e: MouseEvent) => {
         e.preventDefault();
         tileDialogElement?.showModal();
-    }
+    };
 </script>
 
 <TileSummaryModal
-    isRevealed={isRevealed}
-    hasYonka={hasYonka}
-    hasAI={hasAI}
-    hasMine={hasMine}
-    weather={weather}
-    resourceType={resourceType}
-    resourceCount={resourceCount}
-    rowIndex={rowIndex}
-    colIndex={colIndex}
+    {isRevealed}
+    {isVisited}
+    {hasYonka}
+    {hasAI}
+    {hasMine}
+    {weather}
+    {resourceType}
+    {resourceCount}
+    {rowIndex}
+    {colIndex}
     bind:tileDialogElement
 />
 <button
     id={`tile-${rowIndex}-${colIndex}`}
-    class={`${isRevealed ? "revealed-" : "unrevealed-"}tile ${indexOfTileInRevealArray >= 0 ? "glow" : ""}`}
+    class={`${isVisible ? "revealed-" : "unrevealed-"}tile ${
+        indexOfTileInRevealArray >= 0 || isBeingLasered ? "glow" : ""
+    } ${indexOfTileInMineArray >= 0 ? "mine-drop" : ""}`}
     style={`
-        ${isRevealed ? "--revealed-color: gold;" : "--revealed-color: white;"} 
+        ${isVisible ? "--revealed-color: gold;" : "--revealed-color: white;"} 
         ${
-            isRevealed
+            isVisible
                 ? hasMine
                     ? "--mine-color: red;"
                     : "--mine-color: green;"
@@ -109,12 +166,15 @@
     on:click={onClickTile}
     on:contextmenu={onContextMenuTile}
 >
-    {#if isRevealed}
+    {#if isVisible}
         <!-- #region Resources -->
         {#if resourceType === ResourceTypes.Food}
             {#if resourceCount > 0}
                 <div class="food-group">
-                    <span class={`food-count ${$isAnimationEnabled ? "" : "green"}`}>{resourceCount}</span>
+                    <span
+                        class={`food-count ${$isAnimationEnabled ? "" : "green"}`}
+                        >{resourceCount}</span
+                    >
                     {#if $isAnimationEnabled}
                         <img
                             src={goodFood}
@@ -127,7 +187,10 @@
                 </div>
             {:else if resourceCount < 0}
                 <div class="food-group">
-                    <span class={`food-count ${$isAnimationEnabled ? "" : "red"}`}>{resourceCount}</span>
+                    <span
+                        class={`food-count ${$isAnimationEnabled ? "" : "red"}`}
+                        >{resourceCount}</span
+                    >
                     {#if $isAnimationEnabled}
                         <img
                             src={badFood}
@@ -144,7 +207,10 @@
         {:else if resourceType === ResourceTypes.Pellets}
             {#if resourceCount > 0}
                 <div class="food-group">
-                    <span class={`food-count ${$isAnimationEnabled ? "" : "blue"}`}>{resourceCount}</span>
+                    <span
+                        class={`food-count ${$isAnimationEnabled ? "" : "blue"}`}
+                        >{resourceCount}</span
+                    >
                     {#if $isAnimationEnabled}
                         <img
                             src={pipis}
@@ -157,7 +223,10 @@
                 </div>
             {:else if resourceCount < 0}
                 <div class="food-group">
-                    <span class={`food-count ${$isAnimationEnabled ? "" : "yellow"}`}>{resourceCount}</span>
+                    <span
+                        class={`food-count ${$isAnimationEnabled ? "" : "yellow"}`}
+                        >{resourceCount}</span
+                    >
                     {#if $isAnimationEnabled}
                         <img
                             src={epis}
@@ -184,14 +253,21 @@
                 {"\u00A0"}
             {/if}
         </div>
-
+        <!-- #endregion -->
+        <!-- #region Mines -->
         <div class="mine-container">
             {#if hasMine}
-                <img id='mine-here' src={mine} alt="MINE!" width="20px" class="mine" />
+                <img
+                    id="mine-here"
+                    src={mine}
+                    alt="MINE!"
+                    width="20px"
+                    class="mine"
+                />
             {:else}
                 <span class="mine-group">
-                    <img src={no} alt="no" width="20px" class="no" />
-                    <img src={mine} alt="mine" width="14px" class="no-mine" />
+                    <!-- <img src={no} alt="no" width="20px" class="no" />
+                    <img src={mine} alt="mine" width="14px" class="no-mine" /> -->
                 </span>
             {/if}
         </div>
@@ -205,7 +281,7 @@
                     alt="Yonkadingo Location"
                     height="20px"
                     width="20px"
-                    class="ship{helmsmanPlannedMove ? " blinking" : ""}"
+                    class="ship{helmsmanPlannedMove ? ' blinking' : ''}"
                 />
             {:else if hasAI}
                 <img
@@ -240,8 +316,9 @@
 </button>
 
 <style>
-/* #region CSS */
-    .revealed-tile, .unrevealed-tile {
+    /* #region CSS */
+    .revealed-tile,
+    .unrevealed-tile {
         background: var(--revealed-color);
         border: 1px solid var(--mine-color);
 
@@ -251,13 +328,13 @@
         width: calc(100% - 2px);
     }
 
-    .revealed-tile{
+    .revealed-tile {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 1px;
     }
 
-    .glow{
+    .glow {
         background: radial-gradient(cyan, var(--revealed-color));
         animation: glow 1s infinite alternate;
     }
@@ -294,24 +371,27 @@
         vertical-align: middle;
     }
 
-    .green, .red, .blue, .yellow{
+    .green,
+    .red,
+    .blue,
+    .yellow {
         padding: 3px;
     }
 
-    .green{
-        color: #3BCC09;
+    .green {
+        color: #3bcc09;
     }
 
-    .red{
-        color: #B00000;
+    .red {
+        color: #b00000;
     }
 
-    .blue{
-        color: #00BFFF;
+    .blue {
+        color: #00bfff;
     }
-    
-    .yellow{
-        color: #FFFF00;
+
+    .yellow {
+        color: #ffff00;
     }
 
     .food {
@@ -329,7 +409,7 @@
         align-self: center;
     }
 
-    .mine-container{
+    .mine-container {
         height: 100%;
         width: 100%;
         display: flex;
@@ -371,13 +451,19 @@
             brightness(96%) contrast(103%);
     }
 
-    .blinking{
+    .blinking {
         animation-name: blinking;
         animation-duration: 1.5s;
         animation-iteration-count: infinite;
     }
 
-    @keyframes blinking{
+    .mine-drop {
+        animation-name: blink-red;
+        animation-duration: 1.5s;
+        animation-iteration-count: infinite;
+    }
+
+    @keyframes blinking {
         0% {
             opacity: 1;
         }
@@ -394,13 +480,31 @@
             opacity: 1;
         }
     }
-    
+
     @keyframes glow {
         from {
             box-shadow: 0 0 10px -10px whitesmoke;
         }
         to {
             box-shadow: 0 0 10px 10px whitesmoke;
+        }
+    }
+
+    @keyframes blink-red {
+        0% {
+            background-color: red;
+        }
+        49% {
+            background-color: red;
+        }
+        50% {
+            background-color: inherit;
+        }
+        99% {
+            background-color: inherit;
+        }
+        100% {
+            background-color: red;
         }
     }
 </style>
