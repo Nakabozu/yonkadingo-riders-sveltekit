@@ -145,7 +145,9 @@ export type Yonkadingo = {
     hp: number;
     food: number;
     pellets: number;
-    isDodging: boolean;
+    isDodging: boolean; // If the yonka is dodging, they can pass through a mine for free
+    extraMoves: number; // If the yonka passed over a tailwind tile, they get extra moves
+    lastTilesMoved: Coordinate[]; // Where the yonkadingo previously traveled over
 };
 
 export const classDescriptions: any = {
@@ -229,6 +231,8 @@ export const yonkadingo = writable<Yonkadingo>({
     food: 10,
     pellets: 10,
     isDodging: false,
+    extraMoves: 0,
+    lastTilesMoved: [],
 });
 export const currentTurn = writable<Classes>(Classes.Steward);
 // #endregion

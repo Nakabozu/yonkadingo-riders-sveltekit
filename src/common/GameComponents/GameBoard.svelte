@@ -47,13 +47,6 @@
 
     socket.on("server_updates_grid", (newGameboard: GameBoardTile[][]) => {
         $gameboard = newGameboard;
-        // newGameboard.forEach((row, ri) => {
-        //     row.forEach((col, ci) => {
-        //         if(col.hasYonka){
-        //             $yonkadingoLocation = {row: ri, column: ci};
-        //         }
-        //     })
-        // })
     });
 </script>
 

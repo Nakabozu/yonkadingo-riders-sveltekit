@@ -49,15 +49,25 @@
         }
         // If we got through the switch case without an early return, we're good.
         $gunnerLaserDirection = move;
+        $gunnerSelectedTiles = [];
     };
 
-    const submitMoves = () => {
+    const submitLaser = () => {
+        socket.emit("client_performs_action", {
+            action: GameActions.GunnerFire,
+            direction: $gunnerLaserDirection,
+        });
+        $gunnerLaserDirection = null;
+        $gunnerSelectedTiles = [];
+    };
+
+    const submitMines = () => {
         socket.emit("client_performs_action", {
             action: GameActions.GunnerMine,
             coordinates: $gunnerSelectedTiles,
-            $gunnerLaserDirection,
         });
-        $helmsmanMovesPerformed = [];
+        $gunnerLaserDirection = null;
+        $gunnerSelectedTiles = [];
     };
 
     const displayWarningMsg = (newWarningMsg: string) => {
@@ -105,20 +115,23 @@
                     }}>↓</button
                 >
             </div>
-            <button on:click={submitMoves} disabled={!$gunnerLaserDirection}>
+            <button on:click={submitLaser} disabled={!$gunnerLaserDirection}>
                 {!$gunnerLaserDirection
                     ? "Aim Laser to Fire"
                     : `FIRE LASER ${$gunnerLaserDirection?.toLocaleUpperCase()}!`}
             </button>
         </div>
-
+        OR
         <div class="mines">
             <h1
                 on:mouseenter={() => {
-                    hoverMsg = "Click on glowing tiles to dro pa mine";
+                    hoverMsg = "Click on red-bordered tiles to drop a mine";
+                    setTimeout(() => {
+                        hoverMsg = "";
+                    }, 2000);
                 }}
             >
-                Drop Mines
+                Drop Mines!
             </h1>
             <div class="countdown">
                 <div class="dseg">
@@ -126,8 +139,15 @@
                     {maxMinesToPlace - $gunnerSelectedTiles.length}
                 </div>
             </div>
-            <button on:click={submitMoves} disabled={!$gunnerLaserDirection}>
-                DROP MINES!
+            <button
+                on:click={submitMines}
+                disabled={!$gunnerSelectedTiles?.length ||
+                    $gunnerSelectedTiles.length <= 0}
+            >
+                {!$gunnerSelectedTiles?.length ||
+                $gunnerSelectedTiles.length <= 0
+                    ? "Click a red-bordered tile"
+                    : `Drop ${$gunnerSelectedTiles.length} Mine${$gunnerSelectedTiles.length > 1 ? "s" : ""}!`}
             </button>
         </div>
     </div>
@@ -161,6 +181,7 @@
         display: flex;
         flex-direction: column;
         gap: 20px;
+        align-items: center;
     }
     .arrows {
         display: grid;

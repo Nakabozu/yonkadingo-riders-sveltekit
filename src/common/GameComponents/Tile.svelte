@@ -74,6 +74,21 @@
                     colIndex === $yonkadingo.location.column
                   : false;
 
+    /** `true` if it's the gunner's turn and the yonkadingo
+     * passed over this tile on the helmsman's action and
+     * the yonkadingo isn't currently on this tile. */
+    $: isMineable =
+        $currentTurn === Classes.Gunner &&
+        $yonkadingo?.lastTilesMoved?.some((minableTile) => {
+            return (
+                minableTile.column === colIndex && minableTile.row === rowIndex
+            );
+        }) &&
+        !(
+            $yonkadingo.location.column === colIndex &&
+            $yonkadingo.location.row === rowIndex
+        );
+
     const getWeatherIcon = (): string => {
         if (isVisible && weather && weather !== Weathers.Nothing) {
             return weatherIcons[weather];
@@ -104,8 +119,9 @@
                     $topmanWarning = "";
                 }, 3000);
             }
-        } else if ($currentTurn === Classes.Gunner) {
+        } else if (isMineable) {
             $gunnerWarning = "";
+            $gunnerLaserDirection = null;
             if (indexOfTileInMineArray >= 0) {
                 // This tile is already selected.  Remove it from the array.
                 let temp = [...$gunnerSelectedTiles];
@@ -152,7 +168,9 @@
     id={`tile-${rowIndex}-${colIndex}`}
     class={`${isVisible ? "revealed-" : "unrevealed-"}tile ${
         indexOfTileInRevealArray >= 0 || isBeingLasered ? "glow" : ""
-    } ${indexOfTileInMineArray >= 0 ? "mine-drop" : ""}`}
+    }${indexOfTileInMineArray >= 0 ? " mine-drop" : ""}${
+        isMineable ? " mineable" : ""
+    }`}
     style={`
         ${isVisible ? "--revealed-color: gold;" : "--revealed-color: white;"} 
         ${
@@ -170,7 +188,7 @@
         <!-- #region Resources -->
         {#if resourceType === ResourceTypes.Food}
             {#if resourceCount > 0}
-                <div class="food-group">
+                <div class={`food-group`}>
                     <span
                         class={`food-count ${$isAnimationEnabled ? "" : "green"}`}
                         >{resourceCount}</span
@@ -369,6 +387,10 @@
         height: 100%;
         text-align: center;
         vertical-align: middle;
+    }
+
+    .mineable {
+        border: 2px solid red;
     }
 
     .green,
